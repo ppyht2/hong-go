@@ -33,20 +33,42 @@ def create_batch(n):
 
 def main():
     batch_dir = 'data'
-    train_size = 20000
+    train_size = 34000
+    train_epoch = train_size * 2
     batch_names = [os.path.join(batch_dir, i) for i in os.listdir(batch_dir)]
-    create_batch(max(1, train_size - len(batch_names)))
+    create_batch(max(0, train_size - len(batch_names)))
     batch_names = [os.path.join(batch_dir, i) for i in os.listdir(batch_dir)]
-    model = DualRes(n_feature=3, n_filter=128, n_residual=6, game_size=9)
+
+    # Let's load up some random batch as the validation sets
+    test_size = 32
+    test_names = np.random.choice(batch_names, test_size)
+    test_data = []
+    for n in test_names:
+        batch = joblib.load(n)
+        s, a, v, p = process_batch(batch)
+        test_data.append((s, a, v, p))
+    test_data = zip(*test_data)
+    test_data = [np.concatenate(f, axis=0) for f in test_data]
+
+    # Model
+    model = DualRes(n_feature=3, n_filter=128, n_residual=12, game_size=9)
     model.build_graph()
+    model.add_validation(*test_data)
 
     batch_idx = 0
 
-    for e in range(train_size):
+    # Training
+    for e in range(train_epoch):
         batch = joblib.load(batch_names[batch_idx])
         s, a, v, p = process_batch(batch)
         model.train(s, a, v, p)
         batch_idx += 1
+        if batch_idx < train_size:
+            batch_idx = 0
+            np.random.shuffle(batch_names)
+
+    model.save('v1')
+    model.load('v1')
 
 
 if __name__ == "__main__":

@@ -77,7 +77,8 @@ class TrainingEnvironment():
         self.state = GoState(pachi_py.CreateBoard(9), pachi_py.BLACK)
         self.current_player = pachi_py.BLACK
         self.players = None
-        os.makedirs(self.record, exist_ok=True)
+        if self.record is not None:
+            os.makedirs(self.record, exist_ok=True)
 
 
 # ---- Pachi Policy
@@ -121,6 +122,12 @@ def _action_to_coord(board, a):
 def str_to_action(board, s):
     return _coord_to_action(board, board.str_to_coord(s))
 
+def get_legal_actions(board, color):
+    """ Get the all black legal moves """
+    cs = board.get_legal_coords(color)
+    a = [_coord_to_action(board, c) for c in cs]
+    return a
+
 
 class GoState(object):
     '''
@@ -149,7 +156,7 @@ class GoState(object):
             pachi_py.stone_other(self.color))
 
     def __repr__(self):
-        return 'To play: {}\n{}'.format(pachi_py.color_to_str(self.color), repr(self.board))
+        return 'To play: {}\n{}'.format(pachi_py.color_to_str(self.color), self.board.__repr__().decode())
 
 # --- misc
 
